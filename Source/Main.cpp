@@ -10,10 +10,10 @@
 #include "MainComponent.h"
 
 //==============================================================================
-class JuceTestApplication  : public juce::JUCEApplication {
+class cvThereminApplication  : public juce::JUCEApplication {
 public:
     //==============================================================================
-    JuceTestApplication() {}
+    cvThereminApplication() {}
 
     const juce::String getApplicationName() override       { return ProjectInfo::projectName; }
     const juce::String getApplicationVersion() override    { return ProjectInfo::versionString; }
@@ -101,4 +101,4 @@ private:
 
 //==============================================================================
 // This macro generates the main() routine that launches the app.
-START_JUCE_APPLICATION (JuceTestApplication)
+START_JUCE_APPLICATION (cvThereminApplication)

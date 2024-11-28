@@ -1,8 +1,6 @@
 #include "MainComponent.h"
 #include <JuceHeader.h>
 
-
-
 //==============================================================================
 MainComponent::MainComponent()
 {
