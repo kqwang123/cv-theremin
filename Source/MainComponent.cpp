@@ -1,46 +1,55 @@
 #include "MainComponent.h"
 #include <JuceHeader.h>
+#include "opencv2/opencv.hpp"
 
-//==============================================================================
 MainComponent::MainComponent()
 {
-    // Make sure you set the size of the component after
-    // you add any child components.
     setSize(800, 600);
 
+    // Frequency Slider
     frequencySlider.setSliderStyle(juce::Slider::LinearHorizontal);
     frequencySlider.setRange(50.0, 500.0);
     frequencySlider.setValue(440.0);
     frequencySlider.addListener(this);
     addAndMakeVisible(frequencySlider);
 
+    // Amplitude Slider
     amplitudeSlider.setSliderStyle(juce::Slider::LinearHorizontal);
     amplitudeSlider.setRange(0.0, 1.0);
     amplitudeSlider.setValue(0.25);
     amplitudeSlider.addListener(this);
     addAndMakeVisible(amplitudeSlider);
 
-    // Some platforms require permissions to open input channels so request that here
-    if (juce::RuntimePermissions::isRequired(juce::RuntimePermissions::recordAudio) && !juce::RuntimePermissions::isGranted(juce::RuntimePermissions::recordAudio))
+    // Audio channels setup
+    if (juce::RuntimePermissions::isRequired(juce::RuntimePermissions::recordAudio) &&
+        !juce::RuntimePermissions::isGranted(juce::RuntimePermissions::recordAudio))
     {
         juce::RuntimePermissions::request(juce::RuntimePermissions::recordAudio,
-                                          [&](bool granted)
-                                          { setAudioChannels(granted ? 2 : 0, 2); });
+            [this](bool granted) { setAudioChannels(granted ? 2 : 0, 2); });
     }
     else
     {
-        // Specify the number of input and output channels that we want to open
         setAudioChannels(2, 2);
+    }
+
+    // OpenCV VideoCapture initialization
+    if (!cap.open(0)) // Open the default camera
+    {
+        juce::Logger::writeToLog("Error: Could not open the webcam.");
+    }
+    else
+    {
+        startTimer(33); // Start a timer to capture frames (30 FPS)
     }
 }
 
 MainComponent::~MainComponent()
 {
-    // This shuts down the audio device and clears the audio source.
     shutdownAudio();
+    stopTimer(); // Stop the timer when the component is destroyed
 }
 
-void MainComponent::sliderValueChanged(juce::Slider *slider) 
+void MainComponent::sliderValueChanged(juce::Slider* slider)
 {
     if (slider == &frequencySlider)
     {
@@ -58,7 +67,6 @@ void MainComponent::updateFrequency()
     phase = fmod((phase + increment), wtSize);
 }
 
-//==============================================================================
 void MainComponent::prepareToPlay(int samplesPerBlockExpected, double sampleRate)
 {
     frequency = frequencySlider.getValue();
@@ -74,11 +82,10 @@ void MainComponent::prepareToPlay(int samplesPerBlockExpected, double sampleRate
     }
 }
 
-void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo &bufferToFill)
+void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill)
 {
-
-    float *const leftSpeaker = bufferToFill.buffer->getWritePointer(0, bufferToFill.startSample);
-    float *const rightSpeaker = bufferToFill.buffer->getWritePointer(1, bufferToFill.startSample);
+    float* const leftSpeaker = bufferToFill.buffer->getWritePointer(0, bufferToFill.startSample);
+    float* const rightSpeaker = bufferToFill.buffer->getWritePointer(1, bufferToFill.startSample);
 
     for (int i = 0; i < bufferToFill.numSamples; i++)
     {
@@ -90,27 +97,50 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo &buffer
 
 void MainComponent::releaseResources()
 {
-    // This will be called when the audio device stops, or when it is being
-    // restarted due to a setting change.
-
-    // For more details, see the help for AudioProcessor::releaseResources()
+    // Release any audio resources
 }
 
-//==============================================================================
-void MainComponent::paint(juce::Graphics &g)
+void MainComponent::paint(juce::Graphics& g)
 {
-    // (Our component is opaque, so we must completely fill the background with a solid colour)
     g.fillAll(getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId));
+    g.setColour(juce::Colours::white);
 
-    // You can add your drawing code here!
+    if (!frame.empty())
+    {
+        juce::Image image(juce::Image::PixelFormat::RGB, frame.cols, frame.rows, false);
+        for (int y = 0; y < frame.rows; ++y)
+        {
+            for (int x = 0; x < frame.cols; ++x)
+            {
+                cv::Vec3b color = frame.at<cv::Vec3b>(y, x);
+                image.setPixelAt(x, y, juce::Colour(color[2], color[1], color[0]));
+            }
+        }
+        g.drawImage(image, getLocalBounds().toFloat());
+    }
 }
 
 void MainComponent::resized()
 {
-    // This is called when the MainContentComponent is resized.
-    // If you add any child components, this is where you should
-    // update their positions.
-
     const int labelSpace = 100;
     frequencySlider.setBounds(labelSpace, 20, getWidth() - 100, 20);
+    amplitudeSlider.setBounds(labelSpace, 60, getWidth() - 100, 20);
+}
+
+void MainComponent::timerCallback()
+{
+    if (cap.isOpened())
+    {
+        cap >> frame; 
+        if (!frame.empty())
+        {
+            int centerX = frame.cols / 2;
+            int centerY = frame.rows / 2;
+            cv::Vec3b color = frame.at<cv::Vec3b>(centerY, centerX);
+            int redValue = color[2]; 
+
+            frequencySlider.setValue(redValue + 230.0);
+        }
+        repaint(); 
+    }
 }
