@@ -1,10 +1,3 @@
-/*
-  ==============================================================================
-
-    This file contains the basic startup code for a JUCE application.
-
-  ==============================================================================
-*/
 
 #include <JuceHeader.h>
 #include "MainComponent.h"
