@@ -107,7 +107,11 @@ void MainComponent::paint(juce::Graphics& g)
 
     if (!frame.empty())
     {
+        //creates a juce image with the size of the opencv frame.
+        //attributes(RGB format, frame column size, frame row size, not single channel)
         juce::Image image(juce::Image::PixelFormat::RGB, frame.cols, frame.rows, false);
+
+        //loops through the matrice to assign each juce Image pixel with the rgb value of the opencv frame
         for (int y = 0; y < frame.rows; ++y)
         {
             for (int x = 0; x < frame.cols; ++x)
@@ -116,6 +120,8 @@ void MainComponent::paint(juce::Graphics& g)
                 image.setPixelAt(x, y, juce::Colour(color[2], color[1], color[0]));
             }
         }
+
+        //draws the image on the canvas
         g.drawImage(image, getLocalBounds().toFloat());
     }
 }
@@ -130,10 +136,32 @@ void MainComponent::resized()
 void MainComponent::timerCallback()
 {
     if (cap.isOpened())
-    {
+    {   
+        //video capture is inputed into the frame matrice
         cap >> frame; 
-        if (!frame.empty())
-        {
+
+        cv::Mat flippedFrame;
+        cv::flip(frame, flippedFrame, 1);
+        cv::Rect rectangleBounds(288, 12, 288, 288);
+        cv::rectangle(flippedFrame, rectangleBounds, cv::Scalar(0, 0, 255));
+        
+        //matrix but only in the bounds of the rectangle
+        cv::Mat playground = flippedFrame(rectangleBounds);
+        
+        cv::Mat grayScaleCopy;
+        cv::cvtColor(playground, grayScaleCopy, cv::COLOR_RGB2GRAY);
+        cv::GaussianBlur(grayScaleCopy, grayScaleCopy, cv::Size(23,23), 0);
+
+        cv::Ptr<cv::BackgroundSubtractor> bgSubtractor;
+        bgSubtractor = cv::createBackgroundSubtractorMOG2();
+        cv::Mat fgMask;
+        bgSubtractor->apply(playground, fgMask);
+        cv::rectangle(fgMask, rectangleBounds, cv::Scalar(0, 0, 255));
+
+        frame = grayScaleCopy;
+
+        if (!frame.empty()){
+        
             int centerX = frame.cols / 2;
             int centerY = frame.rows / 2;
             cv::Vec3b color = frame.at<cv::Vec3b>(centerY, centerX);
