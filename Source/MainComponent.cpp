@@ -152,13 +152,19 @@ void MainComponent::timerCallback()
         cv::cvtColor(playground, grayScaleCopy, cv::COLOR_RGB2GRAY);
         cv::GaussianBlur(grayScaleCopy, grayScaleCopy, cv::Size(23,23), 0);
 
-        cv::Ptr<cv::BackgroundSubtractor> bgSubtractor;
-        bgSubtractor = cv::createBackgroundSubtractorMOG2();
-        cv::Mat fgMask;
-        bgSubtractor->apply(playground, fgMask);
-        cv::rectangle(fgMask, rectangleBounds, cv::Scalar(0, 0, 255));
+        cv::Mat grayScaleColor;
+        cv::cvtColor(grayScaleCopy, grayScaleColor, cv::COLOR_GRAY2BGR); // convert grayScaleColor to channels that flippedFrame can use
+        grayScaleColor.copyTo(flippedFrame(rectangleBounds));
 
-        frame = grayScaleCopy;
+        // cv::Ptr<cv::BackgroundSubtractor> bgSubtractor = cv::createBackgroundSubtractorMOG2();
+        // cv::Mat fgMask;
+        // bgSubtractor->apply(grayScaleCopy, fgMask);
+
+        // cv::Mat fgMaskColor;
+        // cv::cvtColor(fgMask, fgMaskColor, cv::COLOR_GRAY2BGR); // convert fgMask to channels that flippedFrame can use
+        // fgMaskColor.copyTo(flippedFrame(rectangleBounds));
+
+        frame = flippedFrame;
 
         if (!frame.empty()){
         
