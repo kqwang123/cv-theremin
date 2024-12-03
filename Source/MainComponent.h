@@ -35,6 +35,7 @@ private:
 
     cv::VideoCapture cap; 
     cv::Mat frame;        // Current webcam frame
+    cv::Ptr<cv::BackgroundSubtractor> bgSubtractor;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainComponent)
 };
