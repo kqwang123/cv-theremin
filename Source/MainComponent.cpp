@@ -158,10 +158,14 @@ void MainComponent::timerCallback()
 
         cv::Mat fgMask;
         bgSubtractor->apply(grayScaleCopy, fgMask);
+        cv::Mat edges;
+        int deger = 8;
+        cv::Canny(fgMask, edges, deger, deger * 2, 3);
 
         cv::Mat fgMaskColor;
         cv::cvtColor(fgMask, fgMaskColor, cv::COLOR_GRAY2BGR); // convert fgMask to channels that flippedFrame can use
         fgMaskColor.copyTo(flippedFrame(rectangleBounds));
+        
 
         frame = flippedFrame;
 
