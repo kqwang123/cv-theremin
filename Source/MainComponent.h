@@ -33,6 +33,9 @@ private:
     double amplitude;
     double currentSampleRate;
 
+    double pitch = 0.0;
+    double volume = 0.0;
+
     cv::VideoCapture cap; 
     cv::Mat frame;        // Current webcam frame
     cv::Ptr<cv::BackgroundSubtractor> bgSubtractor;

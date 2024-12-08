@@ -8,7 +8,7 @@ MainComponent::MainComponent() : bgSubtractor(cv::createBackgroundSubtractorMOG2
 
     // Frequency Slider
     frequencySlider.setSliderStyle(juce::Slider::LinearHorizontal);
-    frequencySlider.setRange(50.0, 500.0);
+    frequencySlider.setRange(50.0, 450.0);
     frequencySlider.setValue(440.0);
     frequencySlider.addListener(this);
     addAndMakeVisible(frequencySlider);
@@ -142,7 +142,7 @@ void MainComponent::timerCallback()
 
         cv::Mat flippedFrame;
         cv::flip(frame, flippedFrame, 1);
-        cv::Rect rectangleBounds(288, 12, 288, 288);
+        cv::Rect rectangleBounds(288, 12, 300, 300);
         cv::rectangle(flippedFrame, rectangleBounds, cv::Scalar(0, 0, 255));
         
         //matrix but only in the bounds of the rectangle
@@ -163,16 +163,39 @@ void MainComponent::timerCallback()
         cv::cvtColor(fgMask, fgMaskColor, cv::COLOR_GRAY2BGR); // convert fgMask to channels that flippedFrame can use
         fgMaskColor.copyTo(flippedFrame(rectangleBounds));  
 
+
         frame = flippedFrame;
+        bool breakStatement = false;
+        for (size_t y = 0; y < fgMaskColor.rows; ++y) {
+            for (size_t x = 0; x < fgMaskColor.cols; ++x) {
+                uchar pixelValue = fgMaskColor.at<size_t>(y, x);
+                if (pixelValue == 255) {
+                    pitch = x;
+                    volume = y;
+                    breakStatement = true;
+                    break;
+                }
+            }
+            if (breakStatement) break;
+        }
+
+        int intPitch = pitch;
+        int intVolume = volume;
+        std::string text = std::to_string(intPitch) + ',' + std::to_string(intVolume);
+        cv::Point org(0, 100);
+        int fontFace = cv::FONT_HERSHEY_SIMPLEX;
+        cv::Scalar color(255, 255, 255);
+        cv::putText(frame, text, org, fontFace, 1.0, color, 2);
 
         if (!frame.empty()){
         
-            int centerX = frame.cols / 2;
+            /*int centerX = frame.cols / 2;
             int centerY = frame.rows / 2;
             cv::Vec3b color = frame.at<cv::Vec3b>(centerY, centerX);
-            int redValue = color[2]; 
+            int redValue = color[2]; */
 
-            frequencySlider.setValue(redValue + 230.0);
+            frequencySlider.setValue(pitch);
+            //amplitudeSlider.setValue(volume);
         }
         repaint(); 
     }
