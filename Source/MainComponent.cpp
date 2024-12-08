@@ -2,13 +2,13 @@
 #include <JuceHeader.h>
 #include "opencv2/opencv.hpp"
 
-MainComponent::MainComponent() : bgSubtractor(cv::createBackgroundSubtractorMOG2(2500,16,false))
+MainComponent::MainComponent() : bgSubtractor(cv::createBackgroundSubtractorMOG2(2500,10,false))
 {
     setSize(800, 600);
 
     // Frequency Slider
     frequencySlider.setSliderStyle(juce::Slider::LinearHorizontal);
-    frequencySlider.setRange(50.0, 450.0);
+    frequencySlider.setRange(220.0, 880.0);
     frequencySlider.setValue(440.0);
     frequencySlider.addListener(this);
     addAndMakeVisible(frequencySlider);
@@ -169,7 +169,12 @@ void MainComponent::timerCallback()
             for (size_t x = 0; x < fgMaskColor.cols; ++x) {
                 uchar pixelValue = fgMaskColor.at<size_t>(y, x);
                 if (pixelValue == 255) {
-                    pitch = x;
+                    double minFreq = 220.0; 
+                    double maxFreq = 880.0; 
+                    double semitoneRange = 12.0 * std::log2(maxFreq / minFreq);
+                    double semitoneOffset = (x * semitoneRange) / fgMaskColor.cols;
+                    pitch = minFreq * std::pow(2.0, semitoneOffset / 12.0);
+
                     volume = y;
                     cv::Point framePoint = cv::Point(x+rectangleBounds.x, y+rectangleBounds.y);
                     cv::circle(flippedFrame, framePoint, 2, cv::Scalar(0, 0, 255), -1); 
