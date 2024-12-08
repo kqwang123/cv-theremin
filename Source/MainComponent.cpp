@@ -2,7 +2,7 @@
 #include <JuceHeader.h>
 #include "opencv2/opencv.hpp"
 
-MainComponent::MainComponent() : bgSubtractor(cv::createBackgroundSubtractorMOG2(10000,16,false))
+MainComponent::MainComponent() : bgSubtractor(cv::createBackgroundSubtractorMOG2(2500,16,false))
 {
     setSize(800, 600);
 
@@ -162,9 +162,8 @@ void MainComponent::timerCallback()
         cv::Mat fgMaskColor;
         cv::cvtColor(fgMask, fgMaskColor, cv::COLOR_GRAY2BGR); // convert fgMask to channels that flippedFrame can use
         fgMaskColor.copyTo(flippedFrame(rectangleBounds));  
-
-
         frame = flippedFrame;
+
         bool breakStatement = false;
         for (size_t y = 0; y < fgMaskColor.rows; ++y) {
             for (size_t x = 0; x < fgMaskColor.cols; ++x) {
@@ -172,11 +171,15 @@ void MainComponent::timerCallback()
                 if (pixelValue == 255) {
                     pitch = x;
                     volume = y;
+                    cv::Point framePoint = cv::Point(x+rectangleBounds.x, y+rectangleBounds.y);
+                    cv::circle(flippedFrame, framePoint, 2, cv::Scalar(0, 0, 255), -1); 
                     breakStatement = true;
                     break;
                 }
             }
-            if (breakStatement) break;
+            if (breakStatement) {
+                break;
+            }
         }
 
         int intPitch = pitch;
