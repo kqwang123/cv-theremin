@@ -191,13 +191,15 @@ void MainComponent::timerCallback()
             int x = fingertip.x;
             int y = fingertip.y;
 
-            double minFreq = 220.0; 
-            double maxFreq = 880.0; 
-            double semitoneRange = 12.0 * std::log2(maxFreq / minFreq);
-            double semitoneOffset = (x * semitoneRange) / fgMaskColor.cols;
+            double minFreq = 220.0; // corresponds to note A3
+            double maxFreq = 880.0; // corresponds to note A5
+            double semitoneRange = 12.0 * std::log2(maxFreq / minFreq); //represents the range of a full 2 octaves
+            /* https://en.wikipedia.org/wiki/Piano_key_frequencies */
+
+            double semitoneOffset = (x * semitoneRange) / fgMaskColor.cols; //essentially maps 
             pitch = minFreq * std::pow(2.0, semitoneOffset / 12.0);
 
-            volume = 1.0 - static_cast<double>(y) / fgMask.rows; // Invert y axis for volume
+            volume = 1.0 - static_cast<double>(y) / fgMask.rows; // 
 
             cv::Point framePoint = cv::Point(x+rectangleBounds.x, y+rectangleBounds.y);
             cv::circle(flippedFrame, framePoint, 2, cv::Scalar(0, 0, 255), -1);   
@@ -220,7 +222,7 @@ void MainComponent::timerCallback()
             int redValue = color[2]; */
 
             frequencySlider.setValue(pitch);
-            //amplitudeSlider.setValue(volume);
+            amplitudeSlider.setValue(volume);
         }
         repaint(); 
     }
