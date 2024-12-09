@@ -164,27 +164,20 @@ void MainComponent::timerCallback()
         fgMaskColor.copyTo(flippedFrame(rectangleBounds));  
         frame = flippedFrame;
 
-        bool breakStatement = false;
-        for (size_t y = 0; y < fgMaskColor.rows; ++y) {
-            for (size_t x = 0; x < fgMaskColor.cols; ++x) {
-                uchar pixelValue = fgMaskColor.at<size_t>(y, x);
-                if (pixelValue == 255) {
-                    double minFreq = 220.0; 
-                    double maxFreq = 880.0; 
-                    double semitoneRange = 12.0 * std::log2(maxFreq / minFreq);
-                    double semitoneOffset = (x * semitoneRange) / fgMaskColor.cols;
-                    pitch = minFreq * std::pow(2.0, semitoneOffset / 12.0);
+        cv::Moments moments = cv::moments(fgMask, true); // centroid of finger
+        if (moments.m00 > 0) { 
+            int x = static_cast<int>(moments.m10 / moments.m00); // X-coordinate of centroid
+            int y = static_cast<int>(moments.m01 / moments.m00);
 
-                    volume = y;
-                    cv::Point framePoint = cv::Point(x+rectangleBounds.x, y+rectangleBounds.y);
-                    cv::circle(flippedFrame, framePoint, 2, cv::Scalar(0, 0, 255), -1); 
-                    breakStatement = true;
-                    break;
-                }
-            }
-            if (breakStatement) {
-                break;
-            }
+            double minFreq = 220.0; 
+            double maxFreq = 880.0; 
+            double semitoneRange = 12.0 * std::log2(maxFreq / minFreq);
+            double semitoneOffset = (x * semitoneRange) / fgMaskColor.cols;
+            pitch = minFreq * std::pow(2.0, semitoneOffset / 12.0);
+
+            volume = 1.0 - static_cast<double>(y) / fgMask.rows; // Invert y axis for volume
+            cv::Point framePoint = cv::Point(x+rectangleBounds.x, y+rectangleBounds.y);
+            cv::circle(flippedFrame, framePoint, 2, cv::Scalar(0, 0, 255), -1);   
         }
 
         int intPitch = pitch;
