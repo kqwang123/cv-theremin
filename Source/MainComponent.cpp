@@ -141,23 +141,24 @@ void MainComponent::timerCallback()
         cap >> frame; 
 
         cv::Mat flippedFrame;
-        cv::flip(frame, flippedFrame, 1);
+        cv::flip(frame, flippedFrame, 1); //frame is flipped because we are trying to mirror from the perspective of the user
+        
         cv::Rect rectangleBounds(288, 12, 300, 300);
         cv::rectangle(flippedFrame, rectangleBounds, cv::Scalar(0, 0, 255), 2);
-        
-        //matrix but only in the bounds of the rectangle
         cv::Mat playground = flippedFrame(rectangleBounds);
-        
+        //matrix but only in the bounds of the rectangle
+
         cv::Mat grayScaleCopy;
         cv::cvtColor(playground, grayScaleCopy, cv::COLOR_RGB2GRAY);
         cv::GaussianBlur(grayScaleCopy, grayScaleCopy, cv::Size(23,23), 0);
+        //convert matrix to grayscale and apply a gaussian blur
 
         // cv::Mat grayScaleColor;
         // cv::cvtColor(grayScaleCopy, grayScaleColor, cv::COLOR_GRAY2BGR); // convert grayScaleColor to channels that flippedFrame can use
         // grayScaleColor.copyTo(flippedFrame(rectangleBounds));
 
         cv::Mat fgMask;
-        bgSubtractor->apply(grayScaleCopy, fgMask);
+        bgSubtractor->apply(grayScaleCopy, fgMask); //applys a background subtractor to the grayscalecopy and puts it in the fgmask matrix
 
         std::vector<std::vector<cv::Point>> contours;
         std::vector<cv::Vec4i> hierarchy;
@@ -198,28 +199,34 @@ void MainComponent::timerCallback()
 
             int x = fingertip.x;
             int y = fingertip.y;
+            //assigns x and y to the row and col of the fingertip
 
             double minFreq = 220.0; // corresponds to note A3
             double maxFreq = 880.0; // corresponds to note A5
             double semitoneRange = 12.0 * std::log2(maxFreq / minFreq); //represents the range of a full 2 octaves
             /* https://en.wikipedia.org/wiki/Piano_key_frequencies */
 
-            double semitoneOffset = (x * semitoneRange) / fgMaskColor.cols; //essentially maps 
+            double semitoneOffset = (x * semitoneRange) / fgMaskColor.cols; 
             pitch = minFreq * std::pow(2.0, semitoneOffset / 12.0);
+            /*
+                essentially maps each pixel in the box to a frequency between the 2 octaves
+            */
 
-            volume = 1.0 - static_cast<double>(y) / fgMask.rows; // 
+            volume = 1.0 - static_cast<double>(y) / fgMask.rows; //assigns the volume based on the height of where the finger is positioned
 
             cv::Point framePoint = cv::Point(x+rectangleBounds.x, y+rectangleBounds.y);
-            cv::circle(flippedFrame, framePoint, 2, cv::Scalar(0, 0, 255), -1);   
+            cv::circle(flippedFrame, framePoint, 2, cv::Scalar(0, 0, 255), -1);  
+            //maps a circle to the fingertip 
         }
 
         int intPitch = pitch;
-        int intVolume = volume;
+        int intVolume = volume * 100;
         std::string text = std::to_string(intPitch) + ',' + std::to_string(intVolume);
         cv::Point org(0, 100);
         int fontFace = cv::FONT_HERSHEY_SIMPLEX;
         cv::Scalar color(255, 255, 255);
         cv::putText(frame, text, org, fontFace, 1.0, color, 2);
+        //this essentially just tracks the pitch and volume for us in text
 
         if (!frame.empty()){
         
@@ -230,6 +237,7 @@ void MainComponent::timerCallback()
 
             frequencySlider.setValue(pitch);
             amplitudeSlider.setValue(volume);
+            //applys the pitch and volume value to the sliders
         }
         repaint(); 
     }
