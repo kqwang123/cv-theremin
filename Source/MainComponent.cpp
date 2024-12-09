@@ -159,15 +159,37 @@ void MainComponent::timerCallback()
         cv::Mat fgMask;
         bgSubtractor->apply(grayScaleCopy, fgMask);
 
+        std::vector<std::vector<cv::Point>> contours;
+        std::vector<cv::Vec4i> hierarchy;
+        cv::findContours(fgMask, contours, hierarchy, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+
         cv::Mat fgMaskColor;
         cv::cvtColor(fgMask, fgMaskColor, cv::COLOR_GRAY2BGR); // convert fgMask to channels that flippedFrame can use
-        fgMaskColor.copyTo(flippedFrame(rectangleBounds));  
+        fgMaskColor.copyTo(flippedFrame(rectangleBounds));
         frame = flippedFrame;
 
-        cv::Moments moments = cv::moments(fgMask, true); // centroid of finger
-        if (moments.m00 > 0) { 
-            int x = static_cast<int>(moments.m10 / moments.m00); // X-coordinate of centroid
-            int y = static_cast<int>(moments.m01 / moments.m00);
+        // finding finger through contours
+        double maxArea = 0.0;
+        int largestContourIdx = -1;
+        for (size_t i = 0; i < contours.size(); ++i) {
+            double area = cv::contourArea(contours[i]);
+            if (area > maxArea) {
+                maxArea = area;
+                largestContourIdx = i;
+            }
+        }
+
+        if (largestContourIdx != -1) {
+            const std::vector<cv::Point>& largestContour = contours[largestContourIdx];
+            cv::Point fingertip = largestContour[0];
+            for (const auto& point : largestContour) {
+                if (point.y < fingertip.y) { // Find the smallest y-coordinate so that is fingertip
+                    fingertip = point;
+                }
+            }
+
+            int x = fingertip.x;
+            int y = fingertip.y;
 
             double minFreq = 220.0; 
             double maxFreq = 880.0; 
@@ -176,8 +198,10 @@ void MainComponent::timerCallback()
             pitch = minFreq * std::pow(2.0, semitoneOffset / 12.0);
 
             volume = 1.0 - static_cast<double>(y) / fgMask.rows; // Invert y axis for volume
+
             cv::Point framePoint = cv::Point(x+rectangleBounds.x, y+rectangleBounds.y);
             cv::circle(flippedFrame, framePoint, 2, cv::Scalar(0, 0, 255), -1);   
+            cv::drawContours(flippedFrame, contours, largestContourIdx, cv::Scalar(0, 255, 0), 2);
         }
 
         int intPitch = pitch;
