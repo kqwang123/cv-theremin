@@ -143,7 +143,7 @@ void MainComponent::timerCallback()
         cv::Mat flippedFrame;
         cv::flip(frame, flippedFrame, 1);
         cv::Rect rectangleBounds(288, 12, 300, 300);
-        cv::rectangle(flippedFrame, rectangleBounds, cv::Scalar(0, 0, 255));
+        cv::rectangle(flippedFrame, rectangleBounds, cv::Scalar(0, 0, 255), 2);
         
         //matrix but only in the bounds of the rectangle
         cv::Mat playground = flippedFrame(rectangleBounds);
@@ -181,6 +181,14 @@ void MainComponent::timerCallback()
 
         if (largestContourIdx != -1) {
             const std::vector<cv::Point>& largestContour = contours[largestContourIdx];
+
+            std::vector<cv::Point> offsetContour;
+            for (const auto& point : largestContour) {
+                offsetContour.push_back(cv::Point(point.x + rectangleBounds.x, point.y + rectangleBounds.y));
+            }
+
+            cv::drawContours(flippedFrame, std::vector<std::vector<cv::Point>>{offsetContour}, -1, cv::Scalar(0, 255, 0), 2);
+
             cv::Point fingertip = largestContour[0];
             for (const auto& point : largestContour) {
                 if (point.y < fingertip.y) { // Find the smallest y-coordinate so that is fingertip
@@ -203,7 +211,6 @@ void MainComponent::timerCallback()
 
             cv::Point framePoint = cv::Point(x+rectangleBounds.x, y+rectangleBounds.y);
             cv::circle(flippedFrame, framePoint, 2, cv::Scalar(0, 0, 255), -1);   
-            cv::drawContours(flippedFrame, contours, largestContourIdx, cv::Scalar(0, 255, 0), 2);
         }
 
         int intPitch = pitch;
